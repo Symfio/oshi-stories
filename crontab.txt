@@ -1,0 +1,1 @@
+* * * * * python3 /app/run.py story feed > /dev/null
