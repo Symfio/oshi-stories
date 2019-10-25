@@ -21,12 +21,18 @@ https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates
 ```
 ![alt text](./screenshot-get-chat_id.png)
 
-### Build Docker Images
+### How to Dockerize
+- #### Run Redis
 ```bash
-$ docker build -t oshi-stories .
+$ docker run -it -d -p 6379:6379 redis
 ```
 
-### Run Docker Container
+- #### Build Images
 ```bash
-$ docker run -it --rm --name oshi-stories-container -d oshi-stories
+$ docker build -t muhbayu/oshi-stories .
+```
+
+- #### Run Container
+```bash
+$ docker run -it --rm --name oshi-stories -d muhbayu/oshi-stories
 ```
