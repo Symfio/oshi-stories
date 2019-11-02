@@ -12,9 +12,6 @@ from xml.dom.minidom import parseString
 import urllib as urllib
 import send_telegram
 import time
-# try:
-# 	import urllib.request as urllib
-# except ImportError:
 
 try:
 	from instagram_private_api import (
@@ -30,8 +27,6 @@ except ImportError:
 		ClientCookieExpiredError, ClientLoginRequiredError,
 		__version__ as client_version)
 
-from instagram_private_api import ClientError
-from instagram_private_api import Client
 import redis
 
 
@@ -111,69 +106,68 @@ def like_post(post_id):
 	return like
 
 def latest_post(username, user_id):
-	today = datetime.date.today()
-	# today = "2019-09-13"
-	t = time.mktime(datetime.datetime.strptime(str(today), "%Y-%m-%d").timetuple())
-	t = int(t)
-	feed = ig_client.user_feed(user_id, min_timestamp=str(t))
-	f = open("feeds.json", "w")
-	f.write(json.dumps(feed))
-	f.close()
+	try:
+		today = datetime.date.today()
+		t = time.mktime(datetime.datetime.strptime(str(today), "%Y-%m-%d").timetuple())
+		t = int(t)
+		feed = ig_client.user_feed(user_id, min_timestamp=str(t))
+		f = open("feeds.json", "w")
+		f.write(json.dumps(feed))
+		f.close()
 
-	for post in feed['items']:
-		list_media = []
-		# print()
-		post_id = post['id']
-		pk = post['code']
-		k = '{}:{}:{}'.format("post", username, pk)
-		exist = redis_client.exists(k)
-		if exist == 1:
-			print(pk + " Exist")
-			continue
-		media_type = "photo" if post['media_type'] == 1 else "video"
-		if "carousel_media" in post:
-			carousel = True
-			for i, cs in enumerate(post['carousel_media'], start=1):
-				carousel_media_type = "photo" if cs['media_type'] == 1 else "video"
-				if carousel_media_type == 'photo':
-					list_media.append({
-						"caption":"Photo #{}".format(i),
-						"type":"photo",
-						"media":cs['image_versions2']['candidates'][0]['url']
-					})
-				else:
-					list_media.append({
-						"caption":"Video #{}".format(i),						
-						"type":"video",
-						"media":cs['video_versions'][0]['url']
-					})
-		else:
-			carousel = False
-			if media_type == 'photo':
-				url_media = post['image_versions2']['candidates'][0]['url']
+		for post in feed['items']:
+			list_media = []
+			post_id = post['id']
+			pk = post['code']
+			k = '{}:{}:{}'.format("post", username, pk)
+			exist = redis_client.exists(k)
+			if exist == 1:
+				print(pk + " Exist")
+				continue
+			media_type = "photo" if post['media_type'] == 1 else "video"
+			if "carousel_media" in post:
+				carousel = True
+				for i, cs in enumerate(post['carousel_media'], start=1):
+					carousel_media_type = "photo" if cs['media_type'] == 1 else "video"
+					if carousel_media_type == 'photo':
+						list_media.append({
+							"caption":"Photo #{}".format(i),
+							"type":"photo",
+							"media":cs['image_versions2']['candidates'][0]['url']
+						})
+					else:
+						list_media.append({
+							"caption":"Video #{}".format(i),						
+							"type":"video",
+							"media":cs['video_versions'][0]['url']
+						})
 			else:
-				url_media = post['video_versions'][0]['url']
-		post_url = "https://instagram.com/p/{}".format(pk)
-		caption = "[POST] from {}\n\n{}\n\nLink: {}".format(username, post['caption']['text'], post_url)
-		if len(caption) > 1000:
-			caption = caption[:1000] + '...'
+				carousel = False
+				if media_type == 'photo':
+					url_media = post['image_versions2']['candidates'][0]['url']
+				else:
+					url_media = post['video_versions'][0]['url']
+			post_url = "https://instagram.com/p/{}".format(pk)
+			caption = "[POST] from {}\n\n{}\n\nLink: {}".format(username, post['caption']['text'], post_url)
+			if len(caption) > 1000:
+				caption = caption[:1000] + '...'
+				
+			like = like_post(post_id)
 			
-		like = like_post(post_id)
-		
-		print(pk + " Sending...")
-		if carousel is True:
-			send_telegram.send_media_group(caption=caption, media=list_media)
-		else:
-			send_telegram.telegram_bot_send_media(fileType=media_type, url=url_media, caption=caption)
-		print(pk + " OK")
-		redis_client.setex(k, 86400, "True")
-	return
+			print(pk + " Sending...")
+			if carousel is True:
+				send_telegram.send_media_group(caption=caption, media=list_media)
+			else:
+				send_telegram.telegram_bot_send_media(fileType=media_type, url=url_media, caption=caption)
+			print(pk + " OK")
+			redis_client.setex(k, 86400, "True")
+	except Exception as e:
+		print(e)
 
 def latest_stories(username, user_id):
 	feed = ig_client.user_story_feed(user_id)
 	if feed['reel'] is None:
 		print('No Update')
-		# exit(9)
 		return False
 	taken_at = True
 	feed_json = feed['reel']['items']
@@ -240,8 +234,6 @@ def download_user(user, attempt=0):
 		if "story" in sys.argv:
 			print("[=] Fetch STORY [=]")
 			latest_stories(user, user_id)
-
-		# print(user)
 		return user
 	except Exception as e:
 		print(e)
