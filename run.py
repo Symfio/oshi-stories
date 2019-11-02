@@ -254,6 +254,7 @@ if __name__ == '__main__':
 	except Exception as e:
 		print("Cannot connect to redis...")
 		print(e)
+		sys.exit(9)
 	username = os.getenv('INSTAGRAM_USER')
 	password = os.getenv('INSTAGRAM_PASS')
 	ig_client = login(username, password)
