@@ -171,6 +171,9 @@ def latest_stories(username, user_id):
 		return False
 	taken_at = True
 	feed_json = feed['reel']['items']
+	f = open("stories_feed.json", "w")
+	f.write(json.dumps(feed))
+	f.close()
 
 	list_video = []
 	list_image = []
